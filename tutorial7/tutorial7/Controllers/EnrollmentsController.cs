@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using tutorial7.DTOs;
+using tutorial7.Handlers;
 using tutorial7.Models;
 using tutorial7.Services;
 
@@ -34,7 +35,7 @@ namespace tutorial7.Controllers
         }
 
         
-       /*
+     
         [HttpGet]  
         [Authorize(Roles ="admin")] // basicauth icin
         public IActionResult getsmt()
@@ -43,7 +44,7 @@ namespace tutorial7.Controllers
             return Ok("hello ");
         }
         
-        */
+        
 
         [HttpPost]
         [Authorize(Roles = "employee")]
@@ -71,7 +72,6 @@ namespace tutorial7.Controllers
         {
 
             bool validation = service.validationCredential(request.Login,request.Password);
-
 
 
             if (validation == false)

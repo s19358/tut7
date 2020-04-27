@@ -18,9 +18,7 @@ namespace tutorial7.Services
 
         void updateRefreshToken(string oldtoken,Guid newtoken);
 
-        string hashing(string value, string salt);
-        string createsalt();
-        bool validate(string value, string salt, string hash);
+      
 
     }
 }

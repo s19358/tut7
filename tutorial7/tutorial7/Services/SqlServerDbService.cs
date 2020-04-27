@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using tutorial7.Handlers;
 using tutorial7.Models;
 
 namespace tutorial7.Services
@@ -184,19 +185,19 @@ namespace tutorial7.Services
 
         }
 
-        public void assignRefreshToken(string login,Guid rtoken)
+        public void assignRefreshToken(string login, Guid rtoken)
         {
             using (SqlConnection con = new SqlConnection(ConnString))
             using (SqlCommand com = new SqlCommand())
             {
                 com.Connection = con;
-                com.CommandText = "Update student set refreshtoken= @refresh where IndexNumber =@login";               
+                com.CommandText = "Update student set refreshtoken= @refresh where IndexNumber =@login";
                 com.Parameters.AddWithValue("refresh", rtoken);
                 com.Parameters.AddWithValue("login", login);
                 con.Open();
 
 
-               com.ExecuteNonQuery();
+                com.ExecuteNonQuery();
 
             }
 
@@ -205,21 +206,36 @@ namespace tutorial7.Services
         public bool validationCredential(string login, string password)
         {
 
+            var hashfunc = new PasswordHandler();
+
 
             using (SqlConnection con = new SqlConnection(ConnString))
             using (SqlCommand com = new SqlCommand())
             {
                 com.Connection = con;
-                com.CommandText = "Select IndexNumber ,password  From student where IndexNumber =@login and password=@password; ";
+                com.CommandText = "Select IndexNumber ,password,salt  From student where IndexNumber =@login ";
                 com.Parameters.AddWithValue("login", login);
-                com.Parameters.AddWithValue("password", password);
+
                 con.Open();
 
 
                 var dr = com.ExecuteReader();
                 if (dr.Read())
                 {
-                    return true;
+                    var salt = dr["salt"].ToString();
+                    var s = dr["password"].ToString();
+
+
+                    if (!hashfunc.validate(password, salt, s))
+                    {
+                        return false;
+                    }
+                    else
+                    {
+
+                        return true;
+
+                    }
                 }
                 return false;
 
@@ -227,7 +243,7 @@ namespace tutorial7.Services
 
         }
 
-        public void updateRefreshToken(string oldtoken ,Guid newtoken)
+        public void updateRefreshToken(string oldtoken, Guid newtoken)
         {
 
             using (SqlConnection con = new SqlConnection(ConnString))
@@ -246,33 +262,6 @@ namespace tutorial7.Services
             }
 
         }
-
-        public string hashing(string value ,string salt)
-        {
-            var valuebytes = KeyDerivation.Pbkdf2(
-                password: value,
-                salt: Encoding.UTF8.GetBytes(salt),
-                prf: KeyDerivationPrf.HMACSHA512,
-                iterationCount: 10000,
-                numBytesRequested: 256 / 80);
-
-            return Convert.ToBase64String(valuebytes);
-        }
-
-        public  string createsalt()
-        {
-            byte[] randombytes = new Byte[128 / 8];
-            using (var generator = RandomNumberGenerator.Create())
-            {
-                generator.GetBytes(randombytes);
-                return Convert.ToBase64String(randombytes);
-
-            }
-        }
-
-
-        public bool validate(string value, string salt, string hash)
-            => hashing(value, salt) == hash;
-    }
+    }          
    
 }
