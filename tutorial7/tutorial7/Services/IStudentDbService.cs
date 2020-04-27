@@ -11,6 +11,16 @@ namespace tutorial7.Services
         Student EnrollStudent(Student student);
         Enrollment PromoteStudent(Enrollment enrollment);
         bool validationCredential(string login, string password);
-       
+
+        void assignRefreshToken(string login , Guid rtoken);
+
+        bool checkrefreshToken(string token);
+
+        void updateRefreshToken(string oldtoken,Guid newtoken);
+
+        string hashing(string value, string salt);
+        string createsalt();
+        bool validate(string value, string salt, string hash);
+
     }
 }

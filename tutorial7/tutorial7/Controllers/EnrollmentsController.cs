@@ -33,9 +33,21 @@ namespace tutorial7.Controllers
             Configuration = configuration;
         }
 
+        
+       /*
+        [HttpGet]  
+        [Authorize(Roles ="admin")] // basicauth icin
+        public IActionResult getsmt()
+        {
+            //User.Claims.ToList(); user bilgilerini alabilirz
+            return Ok("hello ");
+        }
+        
+        */
 
         [HttpPost]
         [Authorize(Roles = "employee")]
+        //[AllowAnonymous]  -> eger classi komple authorize yaptiysak ve bu metodun authorization olmadan calismasini istiyosak kullanabilirz
         public IActionResult EnrollStudent(Student student)
         {
             Student s = service.EnrollStudent(student);
@@ -54,11 +66,12 @@ namespace tutorial7.Controllers
 
         }
 
-        [HttpPost("login")]
-        public IActionResult Login(LoginRequest request)
+        [HttpPost("login")]  //tokeni alip diger metodlari o token ile calistiriyoruz.
+        public IActionResult Login(LoginRequest request)  //it will generate new token
         {
 
             bool validation = service.validationCredential(request.Login,request.Password);
+
 
 
             if (validation == false)
@@ -86,16 +99,69 @@ namespace tutorial7.Controllers
                 audience: "Students",  //who can access it 
                 claims: claims,
                 expires: DateTime.Now.AddMinutes(10),
-                signingCredentials: creds
+                signingCredentials: creds //which key we will used to encode this token
             );
+
+            //var accesstoken = new JwtSecurityTokenHandler().WriteToken(token);
+            var refreshToken = Guid.NewGuid();   //can be used when actual token is expired 
+                                                 //saved on the client side and db
+
+            service.assignRefreshToken(request.Login, refreshToken);
 
             return Ok(new
             {
                 token = new JwtSecurityTokenHandler().WriteToken(token),
-                refreshToken = Guid.NewGuid()   //can be used when actual token is expired
+                refreshToken 
+                                                                 
             });
 
 
+        }
+
+        [HttpPost("refresh-token")]
+        public IActionResult refreshToken(TokenRequest requestToken)
+        {
+            bool refresh = service.checkrefreshToken(requestToken.refreshToken);
+
+
+            if (refresh == false)
+            {
+                return Unauthorized("incorrect refresh token!");
+            }
+
+            var claims = new[]
+           {
+                //new Claim(ClaimTypes.NameIdentifier, request.Login),
+                new Claim(ClaimTypes.Name,"name1" ),
+                new Claim(ClaimTypes.Role, "admin"),
+                new Claim(ClaimTypes.Role, "student"),
+                new Claim(ClaimTypes.Role, "employee")
+
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["SecretKey"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken
+            (
+                issuer: "Gakko",  
+                audience: "Students", 
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(10),
+                signingCredentials: creds 
+            );
+
+
+
+            var newrefreshToken = Guid.NewGuid();                                             
+            service.updateRefreshToken(requestToken.refreshToken, newrefreshToken);
+
+            return Ok(new
+            {
+                token = new JwtSecurityTokenHandler().WriteToken(token),
+                newrefreshToken
+
+            });
         }
 
 

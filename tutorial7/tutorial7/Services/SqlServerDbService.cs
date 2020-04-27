@@ -1,7 +1,10 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using tutorial7.Models;
 
@@ -10,6 +13,26 @@ namespace tutorial7.Services
     public class SqlServerDbService : IStudentsDbService
     {
         private string ConnString = "Data Source=db-mssql;Initial Catalog=s19358;Integrated Security=True;MultipleActiveResultSets=True";
+
+        public bool checkrefreshToken(string token)
+        {
+            using (SqlConnection con = new SqlConnection(ConnString))
+            using (SqlCommand com = new SqlCommand())
+            {
+                com.Connection = con;
+                com.CommandText = "Select * From student where refreshtoken =@token; ";
+                com.Parameters.AddWithValue("token", token);
+                con.Open();
+                var dr = com.ExecuteReader();
+                if (dr.Read())
+                {
+                    return true;
+                }
+                return false;
+
+            }
+        }
+
         public Student EnrollStudent(Student student)
         {
 
@@ -161,6 +184,24 @@ namespace tutorial7.Services
 
         }
 
+        public void assignRefreshToken(string login,Guid rtoken)
+        {
+            using (SqlConnection con = new SqlConnection(ConnString))
+            using (SqlCommand com = new SqlCommand())
+            {
+                com.Connection = con;
+                com.CommandText = "Update student set refreshtoken= @refresh where IndexNumber =@login";               
+                com.Parameters.AddWithValue("refresh", rtoken);
+                com.Parameters.AddWithValue("login", login);
+                con.Open();
+
+
+               com.ExecuteNonQuery();
+
+            }
+
+        }
+
         public bool validationCredential(string login, string password)
         {
 
@@ -185,6 +226,53 @@ namespace tutorial7.Services
             }
 
         }
+
+        public void updateRefreshToken(string oldtoken ,Guid newtoken)
+        {
+
+            using (SqlConnection con = new SqlConnection(ConnString))
+            using (SqlCommand com = new SqlCommand())
+            {
+                com.Connection = con;
+                com.CommandText = "Update student set refreshtoken= @newrefresh where refreshtoken =@old";
+                com.Parameters.AddWithValue("newrefresh", newtoken);
+                com.Parameters.AddWithValue("old", oldtoken);
+
+                con.Open();
+
+
+                com.ExecuteNonQuery();
+
+            }
+
+        }
+
+        public string hashing(string value ,string salt)
+        {
+            var valuebytes = KeyDerivation.Pbkdf2(
+                password: value,
+                salt: Encoding.UTF8.GetBytes(salt),
+                prf: KeyDerivationPrf.HMACSHA512,
+                iterationCount: 10000,
+                numBytesRequested: 256 / 80);
+
+            return Convert.ToBase64String(valuebytes);
+        }
+
+        public  string createsalt()
+        {
+            byte[] randombytes = new Byte[128 / 8];
+            using (var generator = RandomNumberGenerator.Create())
+            {
+                generator.GetBytes(randombytes);
+                return Convert.ToBase64String(randombytes);
+
+            }
+        }
+
+
+        public bool validate(string value, string salt, string hash)
+            => hashing(value, salt) == hash;
     }
    
 }

@@ -27,7 +27,7 @@ namespace tutorial7.Handlers
             _service = service;
         }
 
-        protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
+        protected override async Task<AuthenticateResult> HandleAuthenticateAsync()//service i burayada koyabilirdik
         {
 
             if (!Request.Headers.ContainsKey("Authorization"))
@@ -37,7 +37,7 @@ namespace tutorial7.Handlers
 
 
             var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]); //base64 olan heaeri aldik parse ettik 
-            var credentialsBytes = Convert.FromBase64String(authHeader.Parameter);  //string e cevirdik
+            var credentialsBytes = Convert.FromBase64String(authHeader.Parameter);  //byte a cevirdik
             var credentials = Encoding.UTF8.GetString(credentialsBytes).Split(":");  // aysenur:12345
 
             if (credentials.Length != 2)
@@ -63,9 +63,9 @@ namespace tutorial7.Handlers
 
             };
 
-            var identity = new ClaimsIdentity(claims, Scheme.Name);
-            var principal = new ClaimsPrincipal(identity);
-            var ticket = new AuthenticationTicket(principal, Scheme.Name);  //assigning ticket
+            var identity = new ClaimsIdentity(claims, Scheme.Name); //passport
+            var principal = new ClaimsPrincipal(identity); //wallet 
+            var ticket = new AuthenticationTicket(principal, Scheme.Name);  //assigning ticket-> allow user to use spesific service
 
             return AuthenticateResult.Success(ticket);
 
